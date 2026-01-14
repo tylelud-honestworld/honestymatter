@@ -616,31 +616,31 @@ model = genai.GenerativeModel(
         "top_k": 1,
     }
 )
-    
-    # Process all images
-    pil_images = []
-    for img in images:
-        if img is not None:
-            img.seek(0)
-            pil_images.append(Image.open(img))
-    
-    # Build the prompt
-    prompt = GEMINI_PROMPT_TEMPLATE.format(
-        laws=THE_4_LAWS,
-        location=location
-    )
-    
-    # Create content with all images
-    content = [prompt]
-    for i, pil_img in enumerate(pil_images, 1):
-        content.append(f"IMAGE {i}:")
-        content.append(pil_img)
-    
-    # Send to Gemini
-    response = model.generate_content(content)
-    
-    # Parse and return
-    return parse_ai_response(response.text)
+def analyze_images(images, location):    
+        # Process all images
+        pil_images = []
+        for img in images:
+            if img is not None:
+                img.seek(0)
+                pil_images.append(Image.open(img))
+        
+        # Build the prompt
+        prompt = GEMINI_PROMPT_TEMPLATE.format(
+            laws=THE_4_LAWS,
+            location=location
+        )
+        
+        # Create content with all images
+        content = [prompt]
+        for i, pil_img in enumerate(pil_images, 1):
+            content.append(f"IMAGE {i}:")
+            content.append(pil_img)
+        
+        # Send to Gemini
+        response = model.generate_content(content)
+        
+        # Parse and return
+        return parse_ai_response(response.text)
 
 # =============================================================================
 # SIDEBAR
