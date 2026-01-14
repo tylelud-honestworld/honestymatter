@@ -41,7 +41,7 @@ except Exception as e:
 
 # Use 1.5 Flash (Stable & High Limits)
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash", 
+    model_name="gemini-pro", 
     generation_config={
         "temperature": 0.0,
         "top_p": 1,
@@ -982,4 +982,5 @@ st.markdown("""
         Works with food, cosmetics, electronics, supplements & more.
     </p>
 </div>
+
 """, unsafe_allow_html=True)
