@@ -50,16 +50,18 @@ model = genai.GenerativeModel(
 )
 
 # =============================================================================
-# CUSTOM STYLING (ROSE THEME)
+# CUSTOM STYLING (YOUR ORIGINAL ROSE THEME RESTORED)
 # =============================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap');
     
+    /* Main container styling */
     .stApp {
         background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 50%, #fecdd3 100%) !important;
     }
     
+    /* Headers */
     h1 {
         font-family: 'Archivo Black', sans-serif !important;
         background: linear-gradient(90deg, #be185d, #e11d48, #f43f5e);
@@ -69,6 +71,18 @@ st.markdown("""
         letter-spacing: -2px;
     }
     
+    h2, h3 {
+        font-family: 'Space Mono', monospace !important;
+        color: #881337 !important;
+    }
+    
+    /* General Text */
+    p, span, label, .stMarkdown {
+        color: #4a044e !important;
+        font-family: 'DM Sans', sans-serif !important;
+    }
+
+    /* Score Card */
     .score-card {
         background: linear-gradient(145deg, #ffffff, #fff1f2);
         border-radius: 20px;
@@ -83,10 +97,15 @@ st.markdown("""
         font-family: 'Archivo Black', sans-serif;
         font-size: 5rem;
         font-weight: 900;
-        color: #be123c;
         line-height: 1;
+        margin: 0.5rem 0;
     }
     
+    .score-green { color: #15803d; }
+    .score-orange { color: #c2410c; }
+    .score-red { color: #be123c; }
+
+    /* Buttons */
     .stButton > button {
         background: linear-gradient(90deg, #be185d, #e11d48) !important;
         color: white !important;
@@ -98,7 +117,7 @@ st.markdown("""
         width: 100%;
         box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3) !important;
     }
-
+    
     /* Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
@@ -119,20 +138,35 @@ st.markdown("""
         background-color: #be185d !important;
         color: white !important;
     }
+
+    /* Deduction Cards */
+    .deduction-card {
+        background: rgba(254, 205, 211, 0.5);
+        border-left: 4px solid #e11d48;
+        padding: 1rem 1.5rem;
+        margin: 0.5rem 0;
+        border-radius: 0 10px 10px 0;
+        font-family: 'DM Sans', sans-serif;
+        color: #881337 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # =============================================================================
-# CONSTANTS & LOGIC
+# CONSTANTS & LOGIC (YOUR ORIGINAL 4 LAWS)
 # =============================================================================
 THE_4_LAWS = """
-## THE 4 LAWS OF INTEGRITY
+## THE 4 LAWS OF INTEGRITY (Scoring Algorithm)
+
+You are an INTEGRITY AUDITOR. Your job is NOT to judge if a product is good quality.
+Your job is to measure HONESTY - the gap between Marketing Claims and Reality.
+
 1. **PROMINENCE** (-20 pts): Hero ingredient must be in top 5.
 2. **DEFINITION** (-15 pts): No unproven buzzwords (Natural, AI, Premium).
 3. **SUBSTITUTION** (-30 pts): No cheap fillers in premium products.
 4. **FINE PRINT** (-40 pts): No contradictions between claims and specs.
 
-SCORING: 80-100 (Green), 50-79 (Orange), 0-49 (Red).
+SCORING: 80-100 (Green/Honest), 50-79 (Orange/Suspicious), 0-49 (Red/Deceptive).
 """
 
 GEMINI_PROMPT_TEMPLATE = """
@@ -176,32 +210,48 @@ def analyze_product(images, location):
     return parse_ai_response(response.text)
 
 # =============================================================================
+# SIDEBAR (YOUR ORIGINAL SIDEBAR)
+# =============================================================================
+with st.sidebar:
+    st.markdown("## 📍 Location Settings")
+    
+    # Default to Australia as requested
+    selected_location = st.selectbox(
+        "Select Region:",
+        options=["Australia", "United States", "United Kingdom", "Canada", "Europe", "Asia", "Global"],
+        index=0
+    )
+    
+    st.markdown("---")
+    
+    with st.expander("📖 The 4 Laws of Integrity"):
+        st.markdown("**1. Prominence:** No Fairy Dusting (-20)")
+        st.markdown("**2. Definition:** No Buzzwords (-15)")
+        st.markdown("**3. Substitution:** No Cheap Fillers (-30)")
+        st.markdown("**4. Fine Print:** No Asterisks (-40)")
+    
+    st.markdown("---")
+    st.markdown("<center style='color:#9f1239'>HonestWorld<br>v1.0.0</center>", unsafe_allow_html=True)
+
+# =============================================================================
 # MAIN UI
 # =============================================================================
 
 # HEADER
-st.markdown("# 🔍 INTEGRITY PROTOCOL")
-
-# LOCATION SELECTOR
-col_loc1, col_loc2 = st.columns([1, 2])
-with col_loc1:
-    st.markdown("**📍 Region:**")
-with col_loc2:
-    selected_location = st.selectbox(
-        "Region", 
-        ["Australia", "United States", "United Kingdom", "Canada", "Europe", "Asia"], 
-        index=0, 
-        label_visibility="collapsed"
-    )
-
-st.markdown("---")
+st.markdown("# 🔍 THE INTEGRITY PROTOCOL")
+st.markdown("""
+<p style="font-family: 'DM Sans', sans-serif; color: #9f1239; font-size: 1.1rem; margin-bottom: 2rem;">
+    Measuring the gap between <strong style="color: #be185d;">Marketing Claims</strong> and 
+    <strong style="color: #e11d48;">Empirical Reality</strong>
+</p>
+""", unsafe_allow_html=True)
 
 # --- INPUT SECTION (Tabs for Camera OR Upload) ---
 tab_cam, tab_upload = st.tabs(["📸 Camera", "📁 Upload from PC"])
 
 final_images_to_scan = []
 
-# TAB 1: CAMERA
+# TAB 1: CAMERA (Fixed: No Pop-ups)
 with tab_cam:
     if 'captured_images' not in st.session_state:
         st.session_state.captured_images = []
@@ -216,6 +266,7 @@ with tab_cam:
     
     # Camera Input
     if len(st.session_state.captured_images) < 3:
+        # Dynamic key ensures camera resets
         cam_key = f"cam_{len(st.session_state.captured_images)}"
         photo = st.camera_input("Take Photo", key=cam_key, label_visibility="collapsed")
         if photo:
@@ -233,7 +284,7 @@ with tab_cam:
     if st.session_state.captured_images:
         final_images_to_scan.extend(st.session_state.captured_images)
 
-# TAB 2: UPLOAD
+# TAB 2: UPLOAD (Restored!)
 with tab_upload:
     st.markdown("**Upload existing photos (JPG, PNG, WEBP)**")
     uploaded_files = st.file_uploader(
@@ -256,20 +307,21 @@ if len(final_images_to_scan) > 0:
                 # RUN ANALYSIS
                 result = analyze_product(final_images_to_scan, selected_location)
                 
-                # DISPLAY RESULTS
+                # DISPLAY RESULTS (Original Layout)
                 st.markdown("---")
                 st.markdown(f"### 📦 {result.get('product_type', 'Product')} detected")
                 
                 # Score Card
                 score = result.get('score', 0)
-                color = "#15803d" if score >= 80 else "#c2410c" if score >= 50 else "#be123c"
+                if score >= 80: color = "score-green"
+                elif score >= 50: color = "score-orange"
+                else: color = "score-red"
                 
                 st.markdown(f"""
-                <div class="score-card" style="border-color: {color};">
-                    <div style="color: {color}; font-weight: bold; letter-spacing: 2px;">INTEGRITY SCORE</div>
-                    <div class="score-value" style="color: {color};">{score}</div>
-                    <div style="background: {color}20; color: {color}; display: inline-block; 
-                         padding: 5px 15px; border-radius: 20px; font-weight: bold;">
+                <div class="score-card">
+                    <div class="score-label">Integrity Score</div>
+                    <div class="score-value {color}">{score}</div>
+                    <div style="font-weight: bold; font-size: 1.2rem;">
                         {result.get('verdict', 'Analyzed')}
                     </div>
                 </div>
@@ -280,19 +332,24 @@ if len(final_images_to_scan) > 0:
                 
                 # Deductions
                 if result.get('deductions'):
-                    st.markdown("### ⚠️ Violations")
+                    st.markdown("### ⚠️ Violations Found")
                     for d in result['deductions']:
-                        st.markdown(f"**-{d['points']} pts: {d['law']}**")
-                        st.caption(d['reason'])
+                        st.markdown(f"""
+                        <div class="deduction-card">
+                            <strong style="color:#be123c">-{d['points']} pts: {d['law']}</strong><br>
+                            {d['reason']}
+                        </div>
+                        """, unsafe_allow_html=True)
                         
                 # Alternative
                 alt = result.get('better_alternative')
                 if alt:
-                    st.success(f"**💡 Try: {alt.get('product_name')}**\n\n{alt.get('why_more_honest')}")
+                    st.markdown("---")
+                    st.success(f"**💡 Honest Alternative: {alt.get('product_name')}**\n\n{alt.get('why_more_honest')}")
 
             except Exception as e:
                 st.error(f"Analysis failed: {e}")
-                st.info("Tip: If you see '429 Quota Exceeded', please change your API Key.")
+                st.info("Tip: If you see '429 Quota Exceeded', your API key has hit the daily limit.")
 else:
     st.info("👆 Please take a photo or upload a file to start.")
 
