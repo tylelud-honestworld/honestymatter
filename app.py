@@ -617,42 +617,51 @@ model = genai.GenerativeModel(
     }
 )
     
-    # Process all images
-pil_images = []
-for img in images:
-        if img is not None:
-            img.seek(0)
-            pil_images.append(Image.open(img))
-    
-    # Build the prompt
-prompt = GEMINI_PROMPT_TEMPLATE.format(
-        laws=THE_4_LAWS,
-        location=location
-    )
-    
-    # Create content with all images
-content = [prompt]
-for i, pil_img in enumerate(pil_images, 1):
-        content.append(f"IMAGE {i}:")
-        content.append(pil_img)
-    
-    # Send to Gemini
-response = model.generate_content(content)
-    
-    # Parse and return
-final_result = parse_ai_response(response.text)
-st.write(final_result)
-# =============================================================================
-# SIDEBAR
-# =============================================================================
-
+ # --- UI & SCANNER LOGIC ---
 with st.sidebar:
     # Auto-detect location
     if 'user_location' not in st.session_state:
         st.session_state.user_location = get_user_location()
     
     location = st.session_state.user_location
+st.title("The Integrity Protocol Scanner")
+
+# 1. Create the upload button
+images = st.file_uploader(
+    "Upload Images", 
+    type=["png", "jpg", "jpeg", "webp"], 
+    accept_multiple_files=True
+)
+
+# 2. Check if images exist
+if images:
+    st.write(f"Scanning {len(images)} images...")
     
+    # Process images
+    pil_images = []
+    for img in images:
+        if img is not None:
+            img.seek(0)
+            pil_images.append(Image.open(img))
+
+    # Build prompt (Make sure these variables like THE_4_LAWS are defined above!)
+    prompt = GEMINI_PROMPT_TEMPLATE.format(
+        laws=THE_4_LAWS,
+        location=location
+    )
+
+    # Prepare content
+    content = [prompt]
+    for i, pil_img in enumerate(pil_images, 1):
+        content.append(pil_img)
+
+    # Run AI
+    try:
+        response = model.generate_content(content)
+        final_result = parse_ai_response(response.text)
+        st.write(final_result)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
     st.markdown("## 📍 Your Location")
     st.markdown(f"""
     <div style="background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 10px; 
