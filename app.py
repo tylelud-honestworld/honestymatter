@@ -637,33 +637,85 @@ def parse_ai_response(response_text):
 # ---------------------------------------------------------
 # 2. MAIN FUNCTION: Sends images to Gemini
 # ---------------------------------------------------------
-def get_gemini_analysis(images, location):
-    # Process all images
+# =========================================================
+# PASTE THIS TO REPLACE YOUR OLD 'def analyze_product'
+# =========================================================
+import json
+import re
+
+def analyze_product(images, location):
+    # --- 1. DEFINE PROMPT INSIDE TO PREVENT MISSING VARIABLE ERRORS ---
+    INTERNAL_PROMPT = """
+    You are an expert consumer advocate. Analyze these product images.
+    Location: {location}
+    
+    THE 4 LAWS OF INTEGRITY:
+    1. Prominence: Hero ingredient must be in top 5. (-20 pts)
+    2. Definition: No unproven buzzwords like "Clinical strength". (-15 pts)
+    3. Substitution: No cheap fillers replacing premium ingredients. (-30 pts)
+    4. Fine Print: No asterisks contradicting the main claim. (-40 pts)
+
+    Return ONLY raw JSON with this structure (no markdown):
+    {{
+        "product_name": "Name of product",
+        "product_type": "Type (e.g. Supplement, Skincare)",
+        "score": 100, 
+        "verdict": "Pass/Fail/Warning",
+        "honesty_summary": "Short summary of findings",
+        "marketing_claims": ["claim 1", "claim 2"],
+        "deductions": [
+            {{"law": "Law 1", "points": 20, "reason": "Reason here"}}
+        ],
+        "product_analysis": {{
+            "main_components": ["comp1", "comp2"],
+            "hero_feature_position": "Top 5 or Not Found",
+            "cheap_filler_detected": "None or Name of filler"
+        }},
+        "better_alternative": "A generic natural alternative"
+    }}
+    """
+
+    # --- 2. IMAGE PROCESSING ---
     pil_images = []
-    for img in images:
-        if img is not None:
-            img.seek(0)
-            pil_images.append(Image.open(img))
-
-    # Build the prompt
-    prompt = GEMINI_PROMPT_TEMPLATE.format(
-        laws=THE_4_LAWS,
-        location=location
-    )
-
-    # Create content list for the API
-    content = [prompt]
-    for i, pil_img in enumerate(pil_images, 1):
-        content.append(f"IMAGE {i}:")
-        content.append(pil_img)
-
-    # Send to Gemini
     try:
-        response = model.generate_content(content)
-        # Use our helper function to return clean data
-        return parse_ai_response(response.text)
+        for img in images:
+            if img is not None:
+                img.seek(0)
+                pil_images.append(Image.open(img))
     except Exception as e:
-        print(f"DEBUG - API ERROR: {e}")
+        st.error(f"❌ Image Error: {e}")
+        return None
+
+    # --- 3. BUILD CONTENT ---
+    try:
+        final_prompt = INTERNAL_PROMPT.format(location=location)
+        content = [final_prompt]
+        for pil_img in pil_images:
+            content.append(pil_img)
+            
+        # --- 4. SEND TO GEMINI ---
+        # We assume 'model' is defined at the top of your script.
+        # If 'model' is missing, this check will tell you.
+        if 'model' not in globals():
+             st.error("❌ Critical Error: 'model' variable is not found. API Key might be missing.")
+             return None
+
+        response = model.generate_content(content)
+        
+        # --- 5. CLEAN AND PARSE ---
+        text = response.text.strip()
+        
+        # Remove markdown backticks if present
+        if "```" in text:
+             match = re.search(r"```(?:json)?(.*?)```", text, re.DOTALL)
+             if match: 
+                 text = match.group(1).strip()
+        
+        return json.loads(text)
+
+    except Exception as e:
+        # THIS WILL PRINT THE REAL ERROR ON YOUR SCREEN
+        st.error(f"❌ CRASH REPORT: {str(e)}")
         return None
 
 # =============================================================================
@@ -692,32 +744,8 @@ with st.sidebar:
     st.markdown("")
     st.markdown("---")
 
-# =============================================================================
-# SIDEBAR
-# =============================================================================
-
-with st.sidebar:
-    # Auto-detect location
-    if 'user_location' not in st.session_state:
-        st.session_state.user_location = get_user_location()
-    
-    location = st.session_state.user_location
-    
-    st.markdown("## 📍 Your Location")
-    st.markdown(f"""
-    <div style="background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 10px; 
-                text-align: center; border: 1px solid #fda4af;">
-        <span style="font-size: 1.5rem;">🌍</span><br>
-        <strong style="color: #881337; font-size: 1.1rem;">{location['full_location']}</strong>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("")
-    
-    st.markdown("---")
-    
-    # The 4 Laws explanation
-    with st.expander("📖 The 4 Laws of Integrity"):
+# The 4 Laws explanation
+with st.expander("📖 The 4 Laws of Integrity"):
         st.markdown("""
         <div class="law-box">
             <div class="law-title">LAW 1: PROMINENCE</div>
