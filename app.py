@@ -778,13 +778,13 @@ with st.expander("📖 The 4 Laws of Integrity"):
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: #9f1239; font-size: 0.8rem;">
+st.markdown("---")
+st.markdown("""
+<div style="text-align: center; color: #9f1239; font-size: 0.8rem;">
         Built by<br>
         <strong style="font-size: 1.1rem;">🌍 HonestWorld</strong><br>
         v1.0.0
-    </div>
+</div>
     """, unsafe_allow_html=True)
 
 # =============================================================================
