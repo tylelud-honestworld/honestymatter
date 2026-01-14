@@ -618,7 +618,7 @@ model = genai.GenerativeModel(
 )
     
     # Process all images
-    pil_images = []
+pil_images = []
     for img in images:
         if img is not None:
             img.seek(0)
