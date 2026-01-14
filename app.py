@@ -595,9 +595,14 @@ def analyze_product(images: list, location: str) -> dict:
     Uses temperature=0.0 for consistent, deterministic scoring.
     Handles 1 or more images flexibly.
     """
-    # Configure Gemini with embedded API key
-    API_KEY = "AIzaSyCvJOcChZLup8KHbQDo1ttFIN7-YoMlGi0"
-    genai.configure(api_key=API_KEY)
+# Configure Gemini with embedded API key
+import streamlit as st
+import google.generativeai as genai
+
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+else:
+    st.error("API Key not found! Please check your Streamlit Secrets.")
     
     # Initialize model with strict temperature for consistency
     model = genai.GenerativeModel(
