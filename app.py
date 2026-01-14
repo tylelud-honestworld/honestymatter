@@ -6,7 +6,7 @@ This app calculates a scientific "Integrity Score" (0-100) by measuring
 the mathematical gap between Marketing Claims (Front) and Empirical Reality (Back/Ingredients).
 
 Author: Senior Python Full-Stack Developer
-Framework: Streamlit + Google Gemini 2.0 Flash
+Framework: Streamlit + Google Gemini 1.5 Flash (High Efficiency)
 """
 
 import streamlit as st
@@ -15,8 +15,8 @@ import json
 import re
 import pandas as pd
 from PIL import Image
-import io
 import requests
+import time
 
 # =============================================================================
 # PAGE CONFIGURATION
@@ -29,7 +29,7 @@ st.set_page_config(
 )
 
 # =============================================================================
-# SECURITY & API SETUP (FIXED)
+# SECURITY & API SETUP
 # =============================================================================
 try:
     # This grabs the key safely from the Streamlit "Safe"
@@ -40,9 +40,9 @@ try:
 except Exception as e:
     st.error(f"Security Error: {e}")
 
-# --- MODEL SETUP ---
+# --- MODEL SETUP (SWITCHED TO 1.5 FLASH FOR HIGHER LIMITS) ---
 model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash", 
+    model_name="gemini-1.5-flash", 
     generation_config={
         "temperature": 0.0,
         "top_p": 1,
@@ -51,7 +51,7 @@ model = genai.GenerativeModel(
 )
 
 # =============================================================================
-# CUSTOM STYLING (ORIGINAL ROSE THEME KEPT INTACT)
+# CUSTOM STYLING (ROSE THEME PRESERVED)
 # =============================================================================
 st.markdown("""
 <style>
@@ -120,7 +120,7 @@ st.markdown("""
         color: #9f1239;
     }
     
-    /* Traffic light colors - adjusted for light theme */
+    /* Traffic light colors */
     .score-green { color: #15803d; text-shadow: 0 0 20px rgba(21, 128, 61, 0.3); }
     .score-orange { color: #c2410c; text-shadow: 0 0 20px rgba(194, 65, 12, 0.3); }
     .score-red { color: #be123c; text-shadow: 0 0 20px rgba(190, 18, 60, 0.3); }
@@ -190,7 +190,7 @@ st.markdown("""
         border: 2px dashed #f9a8d4 !important;
     }
     
-    /* Button styling */
+    /* Button styling (MOBILE OPTIMIZED) */
     .stButton > button {
         background: linear-gradient(90deg, #be185d, #e11d48) !important;
         color: white !important;
@@ -202,7 +202,8 @@ st.markdown("""
         text-transform: uppercase !important;
         letter-spacing: 2px !important;
         transition: all 0.3s ease !important;
-        width: 100%; /* Make full width for mobile */
+        width: 100%;
+        min-height: 50px; /* Big touch target */
     }
     
     .stButton > button:hover {
@@ -225,12 +226,6 @@ st.markdown("""
         color: #9f1239 !important;
     }
     
-    /* DataFrame styling */
-    .dataframe {
-        font-family: 'DM Sans', sans-serif !important;
-        color: #4a044e !important;
-    }
-    
     /* Info boxes */
     .law-box {
         background: rgba(251, 207, 232, 0.4);
@@ -251,36 +246,12 @@ st.markdown("""
         color: #831843 !important;
     }
     
-    /* Expander styling */
-    .streamlit-expanderHeader {
-        font-family: 'Space Mono', monospace !important;
-        background: rgba(255, 255, 255, 0.7) !important;
-        border-radius: 10px !important;
-        color: #881337 !important;
-    }
-    
-    /* Input fields */
-    .stTextInput input, .stSelectbox select {
-        background: white !important;
-        color: #4a044e !important;
-        border: 2px solid #fda4af !important;
-    }
-    
     /* Summary box styling */
     .summary-box {
         background: rgba(255, 255, 255, 0.8);
         padding: 1rem;
         border-radius: 10px;
         border: 1px solid #fda4af;
-        color: #881337 !important;
-    }
-    
-    /* Metric styling */
-    [data-testid="stMetricValue"] {
-        color: #9f1239 !important;
-    }
-    
-    [data-testid="stMetricLabel"] {
         color: #881337 !important;
     }
     
@@ -306,121 +277,53 @@ Your job is to measure HONESTY - the mathematical gap between Marketing Claims a
 
 This applies to ALL product types: Food, Cosmetics, Electronics, Hardware, Supplements, Software, Services, etc.
 
-## PRODUCT TYPE DETECTION:
-First, identify what type of product this is:
-- **CONSUMABLES** (Food, Beverages, Supplements): Look for ingredients list, nutrition facts
-- **COSMETICS/PERSONAL CARE**: Look for ingredients list, usage instructions
-- **ELECTRONICS/TECH**: Look for specifications, features list, model numbers
-- **HARDWARE/TOOLS**: Look for specifications, materials, ratings
-- **SOFTWARE/SERVICES**: Look for features, terms, limitations
-- **OTHER**: Adapt analysis to whatever information is visible
-
-## FLEXIBLE IMAGE ANALYSIS:
-Products may have different layouts. Analyze ALL visible information:
-- If there's a FRONT and BACK: Compare marketing (front) vs reality (back)
-- If there's only ONE SIDE: Look for marketing claims vs fine print/specs on same surface
-- If it's a BOX: Analyze all visible sides shown
-- If it's a SCREEN/DIGITAL: Analyze headlines vs details/disclaimers
-- If it's PACKAGING with a PRODUCT visible: Analyze both
-
 Start with a Score of 100 (Perfect Integrity) and DEDUCT points based on these violations:
 
 ### LAW 1: THE LAW OF PROMINENCE ("Fairy Dusting") - DEDUCT 20 POINTS
 - LOGIC: Highlighting a feature/ingredient that is actually minor or barely present.
-- FOR CONSUMABLES: Hero ingredient not in top 5 ingredients
-- FOR ELECTRONICS: Featured capability is actually basic/standard or barely functional
-- FOR SERVICES: Highlighted benefit has major limitations
 - DEDUCTION: -20 points
 
 ### LAW 2: THE LAW OF DEFINITION ("Buzzwords") - DEDUCT 15 POINTS  
 - LOGIC: Using unregulated marketing words that imply value but have no proof or certification.
-- BUZZWORDS TO FLAG: "Natural", "Premium", "Professional", "Military Grade", "Lab Tested",
-  "Clinically Proven", "AI-Powered", "Smart", "Quantum", "Nano", "Pro", "Elite", "Advanced", 
-  "Next-Gen", "Revolutionary", "Breakthrough", "Innovative", "World's Best", "Ultimate",
-  "Industrial Strength", "Hospital Grade", "Aircraft Aluminum", "Space Age", "Eco-Friendly"
-- TEST: These words appear WITHOUT specific certification, test results, or verifiable proof
+- BUZZWORDS TO FLAG: "Natural", "Premium", "AI-Powered", "Professional", "Clinically Proven".
 - DEDUCTION: -15 points
 
 ### LAW 3: THE LAW OF SUBSTITUTION ("Cheap Reality") - DEDUCT 30 POINTS
 - LOGIC: Premium marketing hiding cheap/basic reality.
-- FOR CONSUMABLES: Premium claims but #1 ingredient is water, sugar, filler
-- FOR ELECTRONICS: Premium price but generic/basic components or specs
-- FOR SERVICES: Premium tier but basic features repackaged
 - DEDUCTION: -30 points
 
 ### LAW 4: THE LAW OF FINE PRINT ("The Asterisk") - DEDUCT 40 POINTS
 - LOGIC: A headline claim directly contradicted by fine print, specs, or disclaimers.
-- EXAMPLES:
-  * "Unlimited" but has limits/throttling
-  * "Free" but requires payment/subscription
-  * "Waterproof" but only splash resistant
-  * "All-Day Battery" but only under lab conditions
-  * "No Added Sugar" but contains sweeteners/concentrates
-  * "Works with all devices" but major compatibility limits
-  * "Instant Results" but "results may vary, 8 weeks needed"
-  * "Lifetime Warranty" but with major exclusions
-  * "Up to 50% off" but only on select items
 - DEDUCTION: -40 points (MOST SEVERE - direct contradiction)
 
 ## SCORING THRESHOLDS:
-- 80-100: GREEN (Honest Product) - Minor or no deceptions
-- 50-79: ORANGE (Suspicious) - Notable gaps between claims and reality  
-- 0-49: RED (High Deception) - Significant misleading marketing
+- 80-100: GREEN (Honest Product)
+- 50-79: ORANGE (Suspicious)
+- 0-49: RED (High Deception)
 """
 
 GEMINI_PROMPT_TEMPLATE = """
 {laws}
 
 ## YOUR TASK:
-
 Analyze these product image(s) and calculate the INTEGRITY SCORE.
-
 **USER LOCATION:** {location}
 
 ## FINDING HONEST ALTERNATIVES:
 When suggesting alternatives, you MUST:
-1. Identify what TYPE of product this is (e.g., honey cereal, face moisturizer, USB cable)
-2. Search your knowledge for SIMILAR products available in {location}
-3. Suggest a specific product that:
-   - Is available in the user's country/region ({location})
-   - Has HONEST marketing (no fairy dusting, no misleading claims)
-   - If it's food: the hero ingredient IS in the top ingredients
-   - If it's cosmetics: claims are backed by real certifications
-   - If it's electronics: specs match the marketing claims
-   - Has a higher integrity score than the scanned product
-4. Include the BRAND NAME and PRODUCT NAME specifically
-5. Briefly explain WHY this alternative is more honest
-
-Example good alternatives:
-- "In Australia, try 'Capilano Pure Australian Honey' - the only ingredient is 100% Australian honey, no fillers or added sugars"
-- "In the US, try 'Anker PowerLine III USB-C Cable' - specs are accurately stated, no exaggerated claims"
-- "In the UK, try 'The Ordinary Hyaluronic Acid 2% + B5' - transparent ingredient list, no buzzword marketing"
-
-## FLEXIBLE IMAGE ANALYSIS:
-- Analyze ALL images provided (could be 1, 2, or more angles)
-- Identify what type of product this is
-- Find ALL marketing claims visible
-- Find ALL factual information (ingredients, specs, fine print, disclaimers)
-- Compare claims vs reality
-
-## ANALYSIS REQUIREMENTS:
-
-1. IDENTIFY the product type (Food, Electronics, Cosmetics, Hardware, Service, etc.)
-2. EXTRACT all marketing claims from prominent/headline areas
-3. EXTRACT all factual information (ingredients, specs, fine print, disclaimers)
-4. APPLY each of the 4 Laws and note specific violations
-5. CALCULATE the final score (starting from 100, minus deductions)
-6. SUGGEST a MORE HONEST alternative available in {location} (specific brand + product name)
+1. Identify what TYPE of product this is.
+2. Suggest a specific product available in {location}.
+3. The alternative must have HIGHER integrity (honest marketing).
+4. Include the BRAND NAME and PRODUCT NAME.
 
 ## STRICT OUTPUT FORMAT (JSON ONLY):
-
 You MUST respond with ONLY a valid JSON object. No markdown, no explanation, just JSON.
 
 {{
     "product_type": "<detected product category>",
     "product_name": "<identified product name if visible>",
     "score": <integer 0-100>,
-    "verdict": "<short verdict string, max 50 chars>",
+    "verdict": "<short verdict string>",
     "marketing_claims": ["<list of marketing claims found>"],
     "deductions": [
         {{
@@ -431,15 +334,15 @@ You MUST respond with ONLY a valid JSON object. No markdown, no explanation, jus
     ],
     "product_analysis": {{
         "main_components": ["<list top 5 ingredients OR key specs>"],
-        "hero_feature_position": "<position of featured item or 'Not Found' or 'N/A'>",
-        "cheap_filler_detected": "<identified filler/basic component or 'None'>"
+        "hero_feature_position": "<position of featured item or 'Not Found'>",
+        "cheap_filler_detected": "<identified filler or 'None'>"
     }},
     "better_alternative": {{
         "product_name": "<specific brand + product name available in user's location>",
-        "why_more_honest": "<1-2 sentences explaining why this alternative has better integrity>",
-        "estimated_score": <integer 80-100 estimated integrity score>
+        "why_more_honest": "<why this is better>",
+        "estimated_score": <integer 80-100>
     }},
-    "honesty_summary": "<2-3 sentence summary of the gap between marketing and reality>"
+    "honesty_summary": "<2-3 sentence summary>"
 }}
 """
 
@@ -448,7 +351,6 @@ You MUST respond with ONLY a valid JSON object. No markdown, no explanation, jus
 # =============================================================================
 
 def get_score_color(score: int) -> tuple:
-    """Return color class and emoji based on score threshold."""
     if score >= 80:
         return "green", "🟢", "HONEST PRODUCT"
     elif score >= 50:
@@ -457,9 +359,7 @@ def get_score_color(score: int) -> tuple:
         return "red", "🔴", "HIGH DECEPTION"
 
 def render_score_card(score: int, verdict: str):
-    """Render the main score display with traffic light coloring."""
     color, emoji, status = get_score_color(score)
-    
     st.markdown(f"""
     <div class="score-card">
         <div class="score-label">Integrity Score</div>
@@ -472,14 +372,11 @@ def render_score_card(score: int, verdict: str):
     """, unsafe_allow_html=True)
 
 def render_deductions_table(deductions: list):
-    """Render deductions as both cards and a DataFrame."""
     if not deductions:
         st.success("✅ No integrity violations detected!")
         return
     
     st.markdown("### 📋 Violation Report")
-    
-    # Render as styled cards
     for d in deductions:
         st.markdown(f"""
         <div class="deduction-card">
@@ -488,38 +385,14 @@ def render_deductions_table(deductions: list):
             {d.get('reason', 'No reason provided')}
         </div>
         """, unsafe_allow_html=True)
-    
-    # Also render as DataFrame for export
-    st.markdown("#### 📊 Truth Table")
-    df = pd.DataFrame(deductions)
-    if not df.empty:
-        df.columns = [col.replace('_', ' ').title() for col in df.columns]
-        st.dataframe(df, use_container_width=True, hide_index=True)
 
 def render_alternative(alternative_data, user_location: str):
-    """Render the better alternative suggestion with score."""
-    
-    # Handle both old string format and new dict format
     if isinstance(alternative_data, str):
         product_name = alternative_data
         why_honest = ""
-        est_score = None
     else:
         product_name = alternative_data.get('product_name', 'No alternative found')
         why_honest = alternative_data.get('why_more_honest', '')
-        est_score = alternative_data.get('estimated_score', None)
-    
-    score_html = ""
-    if est_score:
-        score_html = f"""
-        <div style="display: inline-block; background: rgba(21, 128, 61, 0.2); 
-                    padding: 0.3rem 0.8rem; border-radius: 20px; margin-top: 0.5rem;
-                    border: 1px solid #15803d;">
-            <span style="color: #15803d; font-family: 'Space Mono', monospace; font-weight: bold;">
-                🟢 Est. Score: {est_score}/100
-            </span>
-        </div>
-        """
     
     st.markdown(f"""
     <div class="alternative-card">
@@ -531,25 +404,13 @@ def render_alternative(alternative_data, user_location: str):
         <p style="color: #9f1239; font-family: 'DM Sans', sans-serif; margin: 0.5rem 0; font-size: 0.95rem;">
             {why_honest}
         </p>
-        {score_html}
     </div>
     """, unsafe_allow_html=True)
 
 def parse_ai_response(response_text: str) -> dict:
-    """
-    Parse the AI response, handling potential JSON extraction issues.
-    Returns parsed dict or raises ValueError with helpful message.
-    """
-    # Clean the response
     text = response_text.strip()
-    
-    # Try to extract JSON from markdown code blocks if present
-    json_patterns = [
-        r'```json\s*(.*?)\s*```',
-        r'```\s*(.*?)\s*```',
-        r'\{.*\}'
-    ]
-    
+    # Try to extract JSON from code blocks
+    json_patterns = [r'```json\s*(.*?)\s*```', r'```\s*(.*?)\s*```', r'\{.*\}']
     for pattern in json_patterns:
         match = re.search(pattern, text, re.DOTALL)
         if match:
@@ -558,42 +419,25 @@ def parse_ai_response(response_text: str) -> dict:
                 return json.loads(json_str)
             except json.JSONDecodeError:
                 continue
-    
-    # Last attempt: try parsing the whole response
     try:
         return json.loads(text)
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         return {"score": 0, "verdict": "Error", "honesty_summary": "Error parsing AI response. Please try again."}
 
 def analyze_product(images: list, location: str) -> dict:
-    """
-    Send images to Gemini API and get integrity analysis.
-    Uses temperature=0.0 for consistent, deterministic scoring.
-    """
-    
-    # Process all images
     pil_images = []
     for img in images:
         if img is not None:
             img.seek(0)
             pil_images.append(Image.open(img))
     
-    # Build the prompt
-    prompt = GEMINI_PROMPT_TEMPLATE.format(
-        laws=THE_4_LAWS,
-        location=location
-    )
-    
-    # Create content with all images
+    prompt = GEMINI_PROMPT_TEMPLATE.format(laws=THE_4_LAWS, location=location)
     content = [prompt]
     for i, pil_img in enumerate(pil_images, 1):
         content.append(f"IMAGE {i}:")
         content.append(pil_img)
     
-    # Send to Gemini
     response = model.generate_content(content)
-    
-    # Parse and return
     return parse_ai_response(response.text)
 
 # =============================================================================
@@ -603,15 +447,9 @@ def analyze_product(images: list, location: str) -> dict:
 with st.sidebar:
     st.markdown("## 📍 Location Settings")
     
-    # --- LOCATION FIX (Manual Selector that Defaults to Australia) ---
+    # MANUAL SELECTOR (Default to Australia)
     region_options = ["Australia", "United States", "United Kingdom", "Canada", "Europe", "Asia", "Global"]
-    
-    # Defaults to Australia (index 0)
-    selected_location = st.selectbox(
-        "Select Region:",
-        options=region_options,
-        index=0
-    )
+    selected_location = st.selectbox("Select Region:", options=region_options, index=0)
     
     st.markdown(f"""
     <div style="background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 10px; 
@@ -622,47 +460,16 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     st.markdown("---")
-    
-    # The 4 Laws explanation
     with st.expander("📖 The 4 Laws of Integrity"):
-        st.markdown("""
-        <div class="law-box">
-            <div class="law-title">LAW 1: PROMINENCE</div>
-            <span style="color: #831843;">"Fairy Dusting" - Hero ingredient not in top 5</span><br>
-            <strong style="color: #be185d;">-20 points</strong>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class="law-box">
-            <div class="law-title">LAW 2: DEFINITION</div>
-            <span style="color: #831843;">"Buzzwords" - Unproven marketing terms</span><br>
-            <strong style="color: #be185d;">-15 points</strong>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class="law-box">
-            <div class="law-title">LAW 3: SUBSTITUTION</div>
-            <span style="color: #831843;">"Cheap Fillers" - Premium claims, cheap ingredients</span><br>
-            <strong style="color: #be185d;">-30 points</strong>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class="law-box">
-            <div class="law-title">LAW 4: FINE PRINT</div>
-            <span style="color: #831843;">"The Asterisk" - Claims contradicted by fine print</span><br>
-            <strong style="color: #be185d;">-40 points</strong>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("**1. Prominence:** No Fairy Dusting (-20)")
+        st.markdown("**2. Definition:** No Buzzwords (-15)")
+        st.markdown("**3. Substitution:** No Cheap Fillers (-30)")
+        st.markdown("**4. Fine Print:** No Asterisks (-40)")
     
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #9f1239; font-size: 0.8rem;">
-        Built by<br>
-        <strong style="font-size: 1.1rem;">🌍 HonestWorld</strong><br>
-        v1.0.0
+        Built by<br><strong style="font-size: 1.1rem;">🌍 HonestWorld</strong><br>v1.0.0
     </div>
     """, unsafe_allow_html=True)
 
@@ -670,7 +477,6 @@ with st.sidebar:
 # MAIN APPLICATION
 # =============================================================================
 
-# Header
 st.markdown("# 🔍 THE INTEGRITY PROTOCOL")
 st.markdown("""
 <p style="font-family: 'DM Sans', sans-serif; color: #9f1239; font-size: 1.1rem; margin-bottom: 2rem;">
@@ -679,28 +485,15 @@ st.markdown("""
 </p>
 """, unsafe_allow_html=True)
 
-# Instructions
-with st.expander("📱 How to Use This App", expanded=False):
-    st.markdown("""
-    ### Quick Scan (1-3 photos):
-    1. **Take Photo(s)** of your product - any angle with visible text
-    2. Tap **"SCAN FOR HONESTY"**
-    3. Get your Integrity Score instantly!
-    """)
-
-# Image upload section with camera support for mobile
+# MOBILE CAMERA LOGIC (No Pop-ups)
 st.markdown("### 📷 Scan Product")
 
-# Initialize session state for images
 if 'captured_images' not in st.session_state:
     st.session_state.captured_images = []
 if 'camera_active' not in st.session_state:
     st.session_state.camera_active = True
 
-# --- MOBILE CAMERA LOGIC (FIXED) ---
-# We use a cleaner workflow: Show photos -> Camera Input -> Button to finish
-
-# 1. Show existing photos
+# 1. SHOW PHOTOS
 if st.session_state.captured_images:
     st.markdown(f"**✅ {len(st.session_state.captured_images)} Photos Captured:**")
     cols = st.columns(3)
@@ -708,25 +501,23 @@ if st.session_state.captured_images:
         with cols[i]:
             st.image(img, caption=f"Photo {i+1}", use_container_width=True)
 
-# 2. Camera Input (Only if active and < 3 images)
+# 2. CAMERA INPUT
 if st.session_state.camera_active and len(st.session_state.captured_images) < 3:
     st.markdown("---")
-    # Dynamic key to reset camera widget
-    camera_key = f"camera_{len(st.session_state.captured_images)}"
-    new_photo = st.camera_input("Take a photo", key=camera_key, label_visibility="collapsed")
+    # Dynamic key ensures camera resets after photo
+    cam_key = f"camera_{len(st.session_state.captured_images)}"
+    new_photo = st.camera_input("Take a photo", key=cam_key, label_visibility="collapsed")
     
     if new_photo:
         st.session_state.captured_images.append(new_photo)
         st.rerun()
 
-    # "I have enough" button
     if len(st.session_state.captured_images) > 0:
         if st.button("✅ I have enough pictures - Close Camera", use_container_width=True):
             st.session_state.camera_active = False
             st.rerun()
 
 else:
-    # Camera is closed or full
     col_reset, col_add = st.columns(2)
     with col_reset:
         if st.button("🗑️ Clear & Retake", use_container_width=True):
@@ -739,135 +530,46 @@ else:
                 st.session_state.camera_active = True
                 st.rerun()
 
-# Use captured images
+# ANALYSIS BUTTON
+st.markdown("---")
 product_images = st.session_state.captured_images
 
-# Analysis button
-st.markdown("---")
+analyze_button = st.button("🔍 SCAN FOR HONESTY", use_container_width=True, disabled=len(product_images) == 0)
 
-analyze_button = st.button(
-    "🔍 SCAN FOR HONESTY",
-    use_container_width=True,
-    disabled=len(product_images) == 0
-)
-
-if len(product_images) == 0:
-    st.info("📸 Take at least one photo to scan")
-
-# Run analysis
 if analyze_button and len(product_images) > 0:
-    
-    with st.spinner(f"🔍 Scanning product in {selected_location}... Applying the 4 Laws..."):
+    with st.spinner(f"🔍 Scanning in {selected_location}... Applying the 4 Laws..."):
         try:
-            # Get analysis with flexible images
             result = analyze_product(product_images, selected_location)
             
             st.markdown("---")
             st.markdown("## 📊 Analysis Results")
             
-            # Product identification
-            product_type = result.get('product_type', 'Unknown')
-            product_name = result.get('product_name', 'Unknown Product')
-            
+            # Product Type Badge
             st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.6); padding: 0.8rem 1.2rem; border-radius: 10px; 
-                        margin-bottom: 1rem; border: 1px solid #fda4af;">
-                <span style="color: #9f1239; font-family: 'Space Mono', monospace;">
-                    📦 {product_type.upper()}</span> · 
-                <span style="color: #881337;">{product_name}</span>
+            <div style="background: rgba(255,255,255,0.6); padding: 0.8rem; border-radius: 10px; border: 1px solid #fda4af; margin-bottom: 1rem;">
+                <span style="color: #9f1239; font-weight: bold;">📦 {result.get('product_type', 'Product')}</span> · 
+                <span style="color: #881337;">{result.get('product_name', 'Unknown')}</span>
             </div>
             """, unsafe_allow_html=True)
             
-            # Main score display
-            col_score, col_details = st.columns([1, 2])
+            # Score
+            render_score_card(result.get('score', 0), result.get('verdict', 'Unknown'))
             
-            with col_score:
-                render_score_card(
-                    result.get('score', 0),
-                    result.get('verdict', 'Unknown')
-                )
+            # Summary
+            st.markdown("### 📝 Summary")
+            st.markdown(f"<div class='summary-box'>{result.get('honesty_summary', 'No summary')}</div>", unsafe_allow_html=True)
             
-            with col_details:
-                # Honesty summary
-                st.markdown("### 📝 Summary")
-                st.markdown(f"""
-                <div class="summary-box">
-                    {result.get('honesty_summary', 'No summary available')}
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Marketing claims found
-                if result.get('marketing_claims'):
-                    st.markdown("**Marketing Claims Found:**")
-                    claims = result.get('marketing_claims', [])
-                    for claim in claims[:5]:  # Limit to 5
-                        st.markdown(f"• {claim}")
-            
-            # Deductions table
+            # Deductions
             st.markdown("---")
             render_deductions_table(result.get('deductions', []))
             
-            # Product analysis
-            if result.get('product_analysis'):
-                st.markdown("---")
-                st.markdown("### 🧪 Product Analysis")
-                
-                prod_analysis = result['product_analysis']
-                col_ing1, col_ing2, col_ing3 = st.columns(3)
-                
-                with col_ing1:
-                    st.markdown("**Main Components:**")
-                    components = prod_analysis.get('main_components', [])
-                    for i, comp in enumerate(components[:5], 1):
-                        st.markdown(f"{i}. {comp}")
-                
-                with col_ing2:
-                    hero_pos = prod_analysis.get('hero_feature_position', 'N/A')
-                    st.metric("Hero Feature Position", hero_pos)
-                
-                with col_ing3:
-                    filler = prod_analysis.get('cheap_filler_detected', 'None')
-                    if filler != 'None':
-                        st.metric("⚠️ Cheap Filler", filler)
-                    else:
-                        st.metric("✅ Cheap Filler", "None Detected")
-            
-            # Better alternative
+            # Alternative
             st.markdown("---")
-            render_alternative(
-                result.get('better_alternative', 'No alternative suggested'),
-                selected_location
-            )
-            
-            # Raw JSON (collapsible for debugging)
-            with st.expander("🔧 Raw API Response (Debug)"):
-                st.json(result)
+            render_alternative(result.get('better_alternative', {}), selected_location)
                 
-        except ValueError as e:
-            st.error(f"❌ JSON Parsing Error: {e}")
-            st.markdown("**Troubleshooting:**")
-            st.markdown("- Ensure images are clear and readable")
-            st.markdown("- Try with different product images")
-            
         except Exception as e:
             st.error(f"❌ Analysis Error: {str(e)}")
-            st.markdown("**Possible causes:**")
-            st.markdown("- Invalid API key")
-            st.markdown("- API rate limit exceeded")
-            st.markdown("- Network connection issues")
-            st.markdown("- Images too large or unclear")
+            st.info("💡 Tip: If you get a 429 Error, wait 2 minutes or use a new API Key.")
 
-# Footer
 st.markdown("---")
-st.markdown("""
-<div style="text-align: center; padding: 2rem; color: #9f1239;">
-    <p style="font-family: 'Space Mono', monospace; font-size: 0.8rem;">
-        🌍 HONESTWORLD<br>
-        <span style="color: #be185d;">Measuring Honesty, Not Health</span>
-    </p>
-    <p style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: #881337;">
-        This tool is for educational purposes. Always read product labels carefully.<br>
-        Works with food, cosmetics, electronics, supplements & more.
-    </p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("<center style='color: #9f1239; font-size: 0.8rem;'>HonestWorld • Measuring Honesty, Not Health</center>", unsafe_allow_html=True)
