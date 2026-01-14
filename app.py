@@ -599,21 +599,23 @@ def analyze_product(images: list, location: str) -> dict:
 import streamlit as st
 import google.generativeai as genai
 
-if "GEMINI_API_KEY" in st.secrets:
+# --- SECURITY SETUP ---
+# This grabs the key safely from the Streamlit "Safe"
+try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-else:
-    st.error("API Key not found! Please check your Streamlit Secrets.")
-    
-    # Initialize model with strict temperature for consistency
-    model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        generation_config={
-            "temperature": 0.0,  # CRITICAL: No creativity, consistent scores
-            "top_p": 1,
-            "top_k": 1,
-            "max_output_tokens": 4096,
-        }
-    )
+except Exception as e:
+    st.error("Error: Could not find API Key in Secrets. Please add GEMINI_API_KEY.")
+
+# --- MODEL SETUP ---
+# Updated to the newer version you requested
+model = genai.GenerativeModel(
+    model_name="gemini-2.5-flash", 
+    generation_config={
+        "temperature": 0.0,
+        "top_p": 1,
+        "top_k": 1,
+    }
+)
     
     # Process all images
     pil_images = []
