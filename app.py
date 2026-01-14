@@ -637,7 +637,7 @@ for i, pil_img in enumerate(pil_images, 1):
         content.append(pil_img)
     
     # Send to Gemini
-    response = model.generate_content(content)
+response = model.generate_content(content)
     
     # Parse and return
     return parse_ai_response(response.text)
