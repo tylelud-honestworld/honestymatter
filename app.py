@@ -616,7 +616,6 @@ model = genai.GenerativeModel(
         "top_k": 1,
     }
 )
-    
     # Process all images
     pil_images = []
     for img in images:
