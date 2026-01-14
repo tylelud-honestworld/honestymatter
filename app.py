@@ -640,8 +640,8 @@ for i, pil_img in enumerate(pil_images, 1):
 response = model.generate_content(content)
     
     # Parse and return
-return parse_ai_response(response.text)
-
+final_result = parse_ai_response(response.text)
+st.write(final_result)
 # =============================================================================
 # SIDEBAR
 # =============================================================================
