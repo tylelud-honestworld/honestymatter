@@ -897,7 +897,9 @@ else:
 if product_images:
     st.success(f"✅ {len(product_images)} image(s) ready to scan")
 
-# Analysis button
+# ==========================================
+# ANALYSIS BUTTON SECTION
+# ==========================================
 st.markdown("---")
 
 analyze_button = st.button(
@@ -916,10 +918,16 @@ if analyze_button and len(product_images) > 0:
     
     with st.spinner("🔍 Scanning product... Applying the 4 Laws of Integrity..."):
         try:
-            # Get analysis with flexible images
+            # 1. RUN THE ANALYSIS
+            # (Make sure your function above is named 'analyze_product' or change this name to match)
             result = analyze_product(product_images, location['full_location'])
             
-            # Clear captured images after successful scan (for camera mode)
+            # 2. SAFETY CHECK (This fixes the 'NoneType' Error)
+            if result is None:
+                st.error("❌ Analysis Failed: The AI returned an empty response.")
+                st.stop() # Stops the code here so it doesn't crash below!
+
+            # 3. Clear captured images after successful scan
             if 'captured_images' in st.session_state:
                 st.session_state.captured_images = []
                 st.session_state.capture_step = 1
@@ -927,7 +935,7 @@ if analyze_button and len(product_images) > 0:
             st.markdown("---")
             st.markdown("## 📊 Analysis Results")
             
-            # Product identification
+            # 4. NOW IT IS SAFE TO READ DATA
             product_type = result.get('product_type', 'Unknown')
             product_name = result.get('product_name', 'Unknown Product')
             
@@ -1005,19 +1013,11 @@ if analyze_button and len(product_images) > 0:
             with st.expander("🔧 Raw API Response (Debug)"):
                 st.json(result)
                 
-        except ValueError as e:
-            st.error(f"❌ JSON Parsing Error: {e}")
-            st.markdown("**Troubleshooting:**")
-            st.markdown("- Ensure images are clear and readable")
-            st.markdown("- Try with different product images")
-            st.markdown("- Check that your API key is valid")
-            
         except Exception as e:
             st.error(f"❌ Analysis Error: {str(e)}")
             st.markdown("**Possible causes:**")
             st.markdown("- Invalid API key")
             st.markdown("- API rate limit exceeded")
-            st.markdown("- Network connection issues")
             st.markdown("- Images too large or unclear")
 
 # Footer
