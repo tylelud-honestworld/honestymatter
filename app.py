@@ -747,6 +747,12 @@ with st.expander("📱 How to Use This App", expanded=False):
 # Image upload section with camera support for mobile
 st.markdown("### 📷 Scan Product")
 
+# Initialize session state for images
+if 'captured_images' not in st.session_state:
+    st.session_state.captured_images = []
+if 'capture_step' not in st.session_state:
+    st.session_state.capture_step = 1
+
 # Input method selector
 input_method = st.radio(
     "Choose input method:",
@@ -759,27 +765,56 @@ input_method = st.radio(
 product_images = []
 
 if input_method == "📸 Take Photos":
-    st.markdown("**Take 1-3 photos of your product** (any angles with visible text/claims)")
     
-    col1, col2, col3 = st.columns(3)
+    # Show captured images so far
+    if st.session_state.captured_images:
+        st.markdown(f"**✅ {len(st.session_state.captured_images)} photo(s) captured**")
+        cols = st.columns(len(st.session_state.captured_images))
+        for i, img in enumerate(st.session_state.captured_images):
+            with cols[i]:
+                st.image(img, caption=f"Photo {i+1}", use_container_width=True)
+        
+        # Option to clear and start over
+        col_clear, col_scan = st.columns(2)
+        with col_clear:
+            if st.button("🗑️ Clear & Retake", use_container_width=True):
+                st.session_state.captured_images = []
+                st.session_state.capture_step = 1
+                st.rerun()
     
-    with col1:
-        st.markdown("**Photo 1** ⭐")
-        img1 = st.camera_input("Photo 1", key="cam1", label_visibility="collapsed")
-        if img1:
-            product_images.append(img1)
+    # Show camera for next capture
+    num_captured = len(st.session_state.captured_images)
     
-    with col2:
-        st.markdown("**Photo 2** (optional)")
-        img2 = st.camera_input("Photo 2", key="cam2", label_visibility="collapsed")
-        if img2:
-            product_images.append(img2)
+    if num_captured < 3:
+        if num_captured == 0:
+            st.markdown("**📸 Take Photo 1** (front/main side)")
+        elif num_captured == 1:
+            st.markdown("**📸 Take Photo 2** (back/ingredients - optional)")
+        else:
+            st.markdown("**📸 Take Photo 3** (additional angle - optional)")
+        
+        # Single camera input
+        new_photo = st.camera_input(
+            f"Capture photo {num_captured + 1}",
+            key=f"camera_{st.session_state.capture_step}",
+            label_visibility="collapsed"
+        )
+        
+        if new_photo:
+            st.session_state.captured_images.append(new_photo)
+            st.session_state.capture_step += 1
+            st.rerun()
+        
+        # Skip button for optional photos
+        if num_captured >= 1:
+            if st.button("⏭️ Skip - I have enough photos", use_container_width=True):
+                pass  # Just continue with what we have
     
-    with col3:
-        st.markdown("**Photo 3** (optional)")
-        img3 = st.camera_input("Photo 3", key="cam3", label_visibility="collapsed")
-        if img3:
-            product_images.append(img3)
+    else:
+        st.success("✅ Maximum 3 photos captured!")
+    
+    # Use captured images
+    product_images = st.session_state.captured_images
 
 else:
     st.markdown("**Upload 1-3 images of your product**")
@@ -826,6 +861,11 @@ if analyze_button and len(product_images) > 0:
         try:
             # Get analysis with flexible images
             result = analyze_product(product_images, location['full_location'])
+            
+            # Clear captured images after successful scan (for camera mode)
+            if 'captured_images' in st.session_state:
+                st.session_state.captured_images = []
+                st.session_state.capture_step = 1
             
             st.markdown("---")
             st.markdown("## 📊 Analysis Results")
