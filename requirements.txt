@@ -1,8 +1,8 @@
 # The Integrity Protocol - Dependencies
 # Run: pip install -r requirements.txt
 
-streamlit
-google-generativeai>=0.8.3
-pandas
-Pillow
-requests
+streamlit>=1.28.0
+google-generativeai>=0.3.0
+pandas>=2.0.0
+Pillow>=10.0.0
+requests>=2.28.0
