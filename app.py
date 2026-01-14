@@ -631,7 +631,7 @@ prompt = GEMINI_PROMPT_TEMPLATE.format(
     )
     
     # Create content with all images
-    content = [prompt]
+content = [prompt]
     for i, pil_img in enumerate(pil_images, 1):
         content.append(f"IMAGE {i}:")
         content.append(pil_img)
