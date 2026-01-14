@@ -625,7 +625,7 @@ for img in images:
             pil_images.append(Image.open(img))
     
     # Build the prompt
-    prompt = GEMINI_PROMPT_TEMPLATE.format(
+prompt = GEMINI_PROMPT_TEMPLATE.format(
         laws=THE_4_LAWS,
         location=location
     )
