@@ -616,31 +616,81 @@ model = genai.GenerativeModel(
         "top_k": 1,
     }
 )
-def analyze_images(images, location):    
-        # Process all images
-        pil_images = []
-        for img in images:
-            if img is not None:
-                img.seek(0)
-                pil_images.append(Image.open(img))
+# ---------------------------------------------------------
+# 1. HELPER FUNCTION: Cleans up the AI response
+# ---------------------------------------------------------
+def parse_ai_response(response_text):
+    try:
+        # Clean the text: Remove markdown backticks (```json or ```)
+        text = response_text.strip()
+        match = re.search(r"```(?:json)?(.*?)```", text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+            
+        # Parse the clean JSON
+        return json.loads(text)
         
-        # Build the prompt
-        prompt = GEMINI_PROMPT_TEMPLATE.format(
-            laws=THE_4_LAWS,
-            location=location
-        )
-        
-        # Create content with all images
-        content = [prompt]
-        for i, pil_img in enumerate(pil_images, 1):
-            content.append(f"IMAGE {i}:")
-            content.append(pil_img)
-        
-        # Send to Gemini
+    except Exception as e:
+        print(f"DEBUG - JSON PARSE ERROR: {e}") 
+        return None
+
+# ---------------------------------------------------------
+# 2. MAIN FUNCTION: Sends images to Gemini
+# ---------------------------------------------------------
+def get_gemini_analysis(images, location):
+    # Process all images
+    pil_images = []
+    for img in images:
+        if img is not None:
+            img.seek(0)
+            pil_images.append(Image.open(img))
+
+    # Build the prompt
+    prompt = GEMINI_PROMPT_TEMPLATE.format(
+        laws=THE_4_LAWS,
+        location=location
+    )
+
+    # Create content list for the API
+    content = [prompt]
+    for i, pil_img in enumerate(pil_images, 1):
+        content.append(f"IMAGE {i}:")
+        content.append(pil_img)
+
+    # Send to Gemini
+    try:
         response = model.generate_content(content)
-        
-        # Parse and return
+        # Use our helper function to return clean data
         return parse_ai_response(response.text)
+    except Exception as e:
+        print(f"DEBUG - API ERROR: {e}")
+        return None
+
+# =============================================================================
+# SIDEBAR
+# =============================================================================
+
+with st.sidebar:
+    # Auto-detect location
+    if 'user_location' not in st.session_state:
+        st.session_state.user_location = get_user_location()
+    
+    location = st.session_state.user_location
+    
+    # Safely get the location string (prevents crash if location is None)
+    loc_str = location.get('full_location', 'Unknown Location') if location else 'Unknown Location'
+
+    st.markdown("## 📍 Your Location")
+    st.markdown(f"""
+    <div style="background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 10px; 
+                text-align: center; border: 1px solid #fda4af;">
+        <span style="font-size: 1.5rem;">🌍</span><br>
+        <strong style="color: #881337; font-size: 1.1rem;">{loc_str}</strong>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("")
+    st.markdown("---")
 
 # =============================================================================
 # SIDEBAR
