@@ -596,22 +596,22 @@ def analyze_product(images: list, location: str) -> dict:
     Handles 1 or more images flexibly.
     """
 # Configure Gemini with embedded API key
+
 import streamlit as st
 import google.generativeai as genai
 
 # --- SECURITY SETUP ---
-# This grabs the key safely from the Streamlit "Safe"
 try:
+    # This grabs the key from .streamlit/secrets.toml (local) or App Settings (Cloud)
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 except Exception as e:
-    st.error("Error: Could not find API Key in Secrets. Please add GEMINI_API_KEY.")
+    st.error("Error: Could not find API Key. Make sure to set GEMINI_API_KEY in secrets.toml")
 
 # --- MODEL SETUP ---
-# Updated to the newer version you requested
 model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash", 
+    model_name="gemini-1.5-flash",
     generation_config={
-        "temperature": 0.0,
+        "temperature": 0.0,  # 0.0 means "be precise" for scanning
         "top_p": 1,
         "top_k": 1,
     }
